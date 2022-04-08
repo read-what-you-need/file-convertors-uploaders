@@ -1,0 +1,17 @@
+{
+  "name": "download_convertor_uploader",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "server": "nodemon index.js"
+  },
+  "author": "soulbliss",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.26.1",
+    "cheerio": "^1.0.0-rc.10",
+    "dotenv": "^10.0.0",
+    "kafkajs": "^1.16.0"
+  }
+}
