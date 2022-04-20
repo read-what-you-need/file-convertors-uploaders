@@ -1,25 +1,17 @@
-const { kafkaProducer} = require("../libs/kafkaConnector");
-const { FILE_TO_PROCESS, FILE_JOB_SUBMIT } = require("../libs/kafkaTopics");
+const { kafkaProducer } = require("../libs/kafkaConnector");
+const { FILE_CONVERTED } = require("../libs/kafkaTopics");
 
-const submitFileJobRequest = async ({ fileId }) => {
+const fileConvertedStatusUpdated = async ({ fileId, fileName, fileSize }) => {
   await kafkaProducer
     .send({
-      topic: FILE_JOB_SUBMIT,
-      messages: [{ key: fileId, value: `${fileId}` }]
+      topic: FILE_CONVERTED,
+      messages: [{ key: fileId, value: `${fileName}`, headers: { fileSize: fileSize.toString() } }]
+
     })
-    .then(console.log("successful submitFileJobRequest Kafka"))
-    .catch(e => console.error(`[producer/submitFileJobRequest] ${e.message}`, e));
+    .catch(e => {
+      throw new Error(`[producer/fileConvertedStatusUpdated] ${e.message}: ${e.stack}`);
+    });
+
 };
 
-const addToProcessTopic = async ({ fileId, fileSize }) => {
-  await kafkaProducer
-    .send({
-      topic: FILE_TO_PROCESS,
-      messages: [{ key: fileId, value: `${fileId}`, headers: { fileSize: fileSize.toString() } }]
-    })
-    .then(console.log("successful addToProcessTopic Kafka"))
-    .catch(e => console.error(`[producer/addToProcessTopic] ${e.message}`, e));
-};
-
-
-module.exports = { addToProcessTopic, submitFileJobRequest };
+module.exports = { fileConvertedStatusUpdated };

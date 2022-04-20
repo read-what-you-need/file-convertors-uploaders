@@ -1,0 +1,16 @@
+version: '3'
+services:
+    download-covert-uploader:
+        build:
+            context: .
+        networks: 
+            - kafka-docker-network
+        ports:
+          - "8006:8006"
+        volumes:
+            - /usr/app/node_modules
+            - .:/usr/app
+
+networks:
+  kafka-docker-network:
+    external: true
