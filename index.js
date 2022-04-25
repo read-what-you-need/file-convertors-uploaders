@@ -105,14 +105,17 @@ async function startPipeline(md5) {
       fileName = urlQuery.filename;
       fileExtension = path.extname(fileUrl);
       let downloadFilePath = outputPath + "file" + fileExtension;
+      kafkaService.fileStatusUpdateSender({ fileId: md5, fileStatus: "Downloading file into our systems." });
       return downloadFile({ fileUrl, downloadFilePath });
     })
     .then(_file => {
       let options = { input: path.join(__dirname, outputPath + "file" + fileExtension), output: path.join(__dirname, outputFile) };
+      kafkaService.fileStatusUpdateSender({ fileId: md5, fileStatus: "Launching convertors for file!" });
       return fileConvertorPromiseWrapper(options);
     })
     .then(_response => {
       console.log(`file successfully converted`);
+      kafkaService.fileStatusUpdateSender({ fileId: md5, fileStatus: "Conversion successfully executed." });
       const fileContent = fs.createReadStream(outputFile);
       console.log(`uploading to storage`);
       return new Promise(function (resolve, reject) {
