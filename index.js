@@ -31,7 +31,7 @@ async function connectKafkaProducer() {
 
 async function getPage(identifier) {
   let url = process.env.DOWNLOAD_STORE + identifier;
-  console.log('obtaining page source')
+  console.log("obtaining page source");
   return axios.get(url).then(function (response) {
     return response.data;
   });
@@ -48,7 +48,7 @@ function getDownloadLinksFromPage(html) {
 }
 
 async function fileConvertorPromiseWrapper(options) {
-  console.log(`converting file`)
+  console.log(`converting file`);
   return new Promise((resolve, reject) => {
     fileConvertor(options, function (err) {
       if (err) {
@@ -62,7 +62,7 @@ async function fileConvertorPromiseWrapper(options) {
 
 async function downloadFile({ fileUrl, downloadFilePath }) {
   const file = fs.createWriteStream(downloadFilePath);
-  console.log(`file download started`)
+  console.log(`file download started`);
   return axios({
     method: "get",
     url: fileUrl,
@@ -78,7 +78,7 @@ async function downloadFile({ fileUrl, downloadFilePath }) {
       });
       file.on("close", () => {
         if (!error) {
-          console.log(`file download complete`)
+          console.log(`file download complete`);
           resolve(true);
         }
       });
@@ -114,7 +114,7 @@ async function startPipeline(md5) {
     .then(_response => {
       console.log(`file successfully converted`);
       const fileContent = fs.createReadStream(outputFile);
-      console.log(`uploading to storage`)
+      console.log(`uploading to storage`);
       return new Promise(function (resolve, reject) {
         fileContent.once("error", reject);
         s3.upload({ Bucket: process.env.AWS_BUCKET_NAME, Key: `v2/${md5}/file.txt`, Body: fileContent }, function (err, result) {
@@ -128,15 +128,19 @@ async function startPipeline(md5) {
     })
     .then(() => {
       console.log("uploaded successful ");
-      let fileSize = fs.statSync(outputFile).size;
-      return kafkaService.fileConvertedStatusUpdated({ fileId: md5, fileName, fileSize });
+      return kafkaService.fileStatusUpdateSender({ fileId: md5, fileStatus: "File downloaded into system." });
+    })
+    .then(() => {
+      console.log("successfully updated status to kafka");
+      return kafkaService.addToProcessTopic({ fileId: md5 });
     })
     .then(() => {
       console.log("successfully pinged kafka");
       fs.rmSync(outputPath, { recursive: true, force: true }, () => console.log("cleaning files"));
     })
     .catch(err => {
-      throw new Error(err);
+      kafkaService.fileStatusUpdateSender({ fileId: md5, fileStatus: "Faced error while downloading file into system." });
+      kafkaService.addToFileFailQueue({ fileId: md5, error: err });
     });
 }
 
