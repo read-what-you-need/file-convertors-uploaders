@@ -3,6 +3,8 @@ services:
     download-covert-uploader:
         build:
             context: .
+        restart:
+            always
         ports:
           - "8006:8006"
         volumes:

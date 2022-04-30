@@ -16,7 +16,7 @@ RUN apt install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev curl
 RUN apt-get update && \
  apt-get install -y npm 
 
-RUN curl -sL https://deb.nodesource.com/setup_16.x  | sudo bash -
+RUN curl -sL https://deb.nodesource.com/setup_16.x  |  bash -
 
 RUN apt-get -y install nodejs
 
