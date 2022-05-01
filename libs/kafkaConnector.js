@@ -1,4 +1,4 @@
-const { Kafka, logLevel } = require("kafkajs");
+const { Kafka } = require("kafkajs");
 
 const host = process.env.KAFKA_BROKER_HOST;
 const kafka = new Kafka({
