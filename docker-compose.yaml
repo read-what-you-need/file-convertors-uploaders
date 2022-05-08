@@ -5,7 +5,6 @@ services:
             context: .
         restart:
             always
-        network_mode: "host"  
         ports:
           - "8006:8006"
         volumes:
