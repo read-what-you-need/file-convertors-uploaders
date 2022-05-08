@@ -1,7 +1,7 @@
+const path = require("path");
 const axios = require("axios");
 const cheerio = require("cheerio");
 const fs = require("fs");
-
 
 const fileConvertor = require("ebook-convert");
 
@@ -36,7 +36,12 @@ async function fileConvertorPromiseWrapper(options) {
   });
 }
 
-async function downloadFile({ fileUrl, downloadFilePath }) {
+async function downloadFile({ links, fileId }) {
+  console.log(links)
+  let outputPath = `./files/${fileId}/`;
+  let fileUrl = links[1];
+  fileExtension = path.extname(fileUrl);
+  let downloadFilePath = outputPath + "file" + fileExtension;
   const file = fs.createWriteStream(downloadFilePath);
   console.log(`file download started`);
   return axios({
@@ -61,7 +66,5 @@ async function downloadFile({ fileUrl, downloadFilePath }) {
     });
   });
 }
-
-
 
 module.exports = { getPage, getDownloadLinksFromPage, fileConvertorPromiseWrapper, downloadFile };

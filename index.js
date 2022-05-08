@@ -42,7 +42,6 @@ async function connectKafkaProducer() {
 }
 
 async function startPipeline(md5) {
-  let fileName = null;
   let fileExtension = null;
   let outputPath = `./files/${md5}/`;
   let outputFile = outputPath + "file.txt";
@@ -59,14 +58,11 @@ async function startPipeline(md5) {
       return links;
     })
     .then(links => {
-      let fileUrl = links[1];
-      let urlQuery = url.parse(fileUrl, true).query;
-      fileName = urlQuery.filename;
-      fileExtension = path.extname(fileUrl);
-      let downloadFilePath = outputPath + "file" + fileExtension;
       kafkaService.fileStatusUpdateSender({ fileId: md5, fileStatus: "Downloading file into our systems." });
       downloadTimeMetric = downloadTimeGauge.startTimer();
-      return downloadFile({ fileUrl, downloadFilePath });
+      let fileUrl = links[1];
+      fileExtension = path.extname(fileUrl);
+      return downloadFile({ links, fileId: md5 });
     })
     .then(_file => {
       let options = { input: path.join(__dirname, outputPath + "file" + fileExtension), output: path.join(__dirname, outputFile) };
@@ -112,6 +108,7 @@ async function startPipeline(md5) {
       kafkaService.fileStatusUpdateSender({ fileId: md5, fileStatus: "Faced error while downloading file into system." });
       kafkaService.addToFileFailQueue({ fileId: md5, error: err });
       downloadsFailedCounter.inc(1);
+      console.error("Faced error", err);
       pingGateway();
     });
 }
@@ -149,9 +146,11 @@ const kakfkaConsumerStart = async () => {
     });
 };
 
-const main = async () => {
-  connectKafkaProducer();
-  kakfkaConsumerStart();
-};
+// const main = async () => {
+//   connectKafkaProducer();
+//   kakfkaConsumerStart();
+// };
 
-main();
+// main();
+connectKafkaProducer();
+startPipeline("8646CB7EA966DB45BD0411EAE8C9EC5A");

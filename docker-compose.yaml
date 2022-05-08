@@ -3,8 +3,8 @@ services:
     download-covert-uploader:
         build:
             context: .
-        restart:
-            always
+        # restart:
+        #     always
         network_mode: "host"  
         ports:
           - "8006:8006"
