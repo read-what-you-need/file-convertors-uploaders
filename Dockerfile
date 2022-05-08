@@ -1,9 +1,4 @@
-FROM nikolaik/python-nodejs
-
-RUN apt-get install -y wget \
-&& wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sh /dev/stdin
-
-RUN apt install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev curl
+FROM soulbliss/nodejs-python-calibre
 
 WORKDIR "/usr/app"
 
