@@ -3,7 +3,6 @@ services:
     download-covert-uploader:
         build:
             context: .
-        network_mode: host
         restart:
             always
         ports:
