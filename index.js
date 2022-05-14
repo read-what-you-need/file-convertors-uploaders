@@ -1,8 +1,8 @@
 require("dotenv").config({ path: ".env" });
 const fs = require("fs");
-const url = require("url");
 var path = require("path");
 const AWS = require("aws-sdk");
+const rmdir = require("rimraf");
 
 // bring kafka workers
 const kafkaService = require("./services/kafka");
@@ -10,7 +10,7 @@ const { kafkaProducer } = require("./libs/kafkaConnector");
 const { kafkaConsumer } = require("./libs/kafkaConnector");
 const { FILE_JOB_SUBMIT } = require("./libs/kafkaTopics");
 
-const { getPage, getDownloadLinksFromPage, fileConvertorPromiseWrapper, downloadFile } = require("./services/fileHandlers");
+const { getPage, getDownloadLinksFromPage, fileConvertorPromiseWrapper, resilientDownloader } = require("./services/fileHandlers");
 const {
   pingGateway,
   convertTimeGauge,
@@ -62,7 +62,7 @@ async function startPipeline(md5) {
       downloadTimeMetric = downloadTimeGauge.startTimer();
       let fileUrl = links[1];
       fileExtension = path.extname(fileUrl);
-      return downloadFile({ links, fileId: md5 });
+      return resilientDownloader({ links, fileId: md5 });
     })
     .then(_file => {
       let options = { input: path.join(__dirname, outputPath + "file" + fileExtension), output: path.join(__dirname, outputFile) };
@@ -100,7 +100,9 @@ async function startPipeline(md5) {
     })
     .then(() => {
       console.log("successfully pinged kafka");
-      fs.rmSync(outputPath, { recursive: true, force: true }, () => console.log("cleaning files"));
+      rmdir(outputPath, function () {
+        console.log("cleaning file");
+      });
       downloadsFinishedCounter.inc();
       pingGateway();
     })
@@ -145,12 +147,9 @@ const kakfkaConsumerStart = async () => {
       console.error(`error: [producer/fileSubmittedConsumer] ${e.message}`, e);
     });
 };
+const main = async () => {
+  connectKafkaProducer();
+  kakfkaConsumerStart();
+};
 
-// const main = async () => {
-//   connectKafkaProducer();
-//   kakfkaConsumerStart();
-// };
-
-// main();
-connectKafkaProducer();
-startPipeline("8646CB7EA966DB45BD0411EAE8C9EC5A");
+main();
