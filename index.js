@@ -1,8 +1,8 @@
 require("dotenv").config({ path: ".env" });
 const fs = require("fs");
-const url = require("url");
 var path = require("path");
 const AWS = require("aws-sdk");
+const rmdir = require("rimraf");
 
 // bring kafka workers
 const kafkaService = require("./services/kafka");
@@ -10,7 +10,7 @@ const { kafkaProducer } = require("./libs/kafkaConnector");
 const { kafkaConsumer } = require("./libs/kafkaConnector");
 const { FILE_JOB_SUBMIT } = require("./libs/kafkaTopics");
 
-const { getPage, getDownloadLinksFromPage, fileConvertorPromiseWrapper, downloadFile } = require("./services/fileHandlers");
+const { getPage, getDownloadLinksFromPage, fileConvertorPromiseWrapper, resilientDownloader } = require("./services/fileHandlers");
 const {
   pingGateway,
   convertTimeGauge,
@@ -42,7 +42,6 @@ async function connectKafkaProducer() {
 }
 
 async function startPipeline(md5) {
-  let fileName = null;
   let fileExtension = null;
   let outputPath = `./files/${md5}/`;
   let outputFile = outputPath + "file.txt";
@@ -59,14 +58,11 @@ async function startPipeline(md5) {
       return links;
     })
     .then(links => {
-      let fileUrl = links[1];
-      let urlQuery = url.parse(fileUrl, true).query;
-      fileName = urlQuery.filename;
-      fileExtension = path.extname(fileUrl);
-      let downloadFilePath = outputPath + "file" + fileExtension;
       kafkaService.fileStatusUpdateSender({ fileId: md5, fileStatus: "Downloading file into our systems." });
       downloadTimeMetric = downloadTimeGauge.startTimer();
-      return downloadFile({ fileUrl, downloadFilePath });
+      let fileUrl = links[1];
+      fileExtension = path.extname(fileUrl);
+      return resilientDownloader({ links, fileId: md5 });
     })
     .then(_file => {
       let options = { input: path.join(__dirname, outputPath + "file" + fileExtension), output: path.join(__dirname, outputFile) };
@@ -104,7 +100,9 @@ async function startPipeline(md5) {
     })
     .then(() => {
       console.log("successfully pinged kafka");
-      fs.rmSync(outputPath, { recursive: true, force: true }, () => console.log("cleaning files"));
+      rmdir(outputPath, function () {
+        console.log("cleaning file");
+      });
       downloadsFinishedCounter.inc();
       pingGateway();
     })
@@ -112,6 +110,7 @@ async function startPipeline(md5) {
       kafkaService.fileStatusUpdateSender({ fileId: md5, fileStatus: "Faced error while downloading file into system." });
       kafkaService.addToFileFailQueue({ fileId: md5, error: err });
       downloadsFailedCounter.inc(1);
+      console.error("Faced error", err);
       pingGateway();
     });
 }
@@ -148,7 +147,6 @@ const kakfkaConsumerStart = async () => {
       console.error(`error: [producer/fileSubmittedConsumer] ${e.message}`, e);
     });
 };
-
 const main = async () => {
   connectKafkaProducer();
   kakfkaConsumerStart();

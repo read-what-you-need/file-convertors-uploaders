@@ -11,10 +11,11 @@
   "dependencies": {
     "aws-sdk": "^2.1111.0",
     "axios": "^0.26.1",
-    "prom-client": "^14.0.1",
     "cheerio": "^1.0.0-rc.10",
     "dotenv": "^10.0.0",
     "ebook-convert": "^2.0.1",
-    "kafkajs": "^1.16.0"
+    "kafkajs": "^1.16.0",
+    "prom-client": "^14.0.1",
+    "rimraf": "^3.0.2"
   }
 }

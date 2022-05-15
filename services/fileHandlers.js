@@ -1,8 +1,7 @@
-const axios = require("axios");
+const path = require("path");
 const cheerio = require("cheerio");
 const fs = require("fs");
-
-
+const axios = require("axios");
 const fileConvertor = require("ebook-convert");
 
 async function getPage(identifier) {
@@ -36,12 +35,18 @@ async function fileConvertorPromiseWrapper(options) {
   });
 }
 
-async function downloadFile({ fileUrl, downloadFilePath }) {
+async function downloadFile({ link, fileId }) {
+  let outputPath = `./files/${fileId}/`;
+  let fileUrl = link;
+  fileExtension = path.extname(fileUrl);
+  let downloadFilePath = outputPath + "file" + fileExtension;
   const file = fs.createWriteStream(downloadFilePath);
   console.log(`file download started`);
+
   return axios({
     method: "get",
     url: fileUrl,
+    timeout: 1000 * 15,
     responseType: "stream"
   }).then(response => {
     return new Promise((resolve, reject) => {
@@ -62,6 +67,28 @@ async function downloadFile({ fileUrl, downloadFilePath }) {
   });
 }
 
+async function resilientDownloader({ links, fileId }) {
+  let linkPreference = [1, 0, 2, 4];
+  return new Promise(async (resolve, reject) => {
+    for (let index = 0; index < linkPreference.length; index++) {
+      console.log(index > 1 ? "resilient download active" : "");
+      const link = links[index];
+      try {
+        await downloadFile({ link, fileId })
+          .then(response => {
+            resolve(response);
+          })
+          .catch(err => {
+            throw new Error(err.message);
+          });
+        break;
+      } catch (err) {
+        console.log("error resilientDownload: " + err.message);
+      }
+    }
+    const error = new Error(`File ${fileId} could not be downloaded`);
+    reject(error);
+  });
+}
 
-
-module.exports = { getPage, getDownloadLinksFromPage, fileConvertorPromiseWrapper, downloadFile };
+module.exports = { getPage, getDownloadLinksFromPage, resilientDownloader, fileConvertorPromiseWrapper };
